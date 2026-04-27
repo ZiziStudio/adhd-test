@@ -389,6 +389,8 @@
           <div class="cp-section" id="cpSection"></div>
           <div class="tools-section" id="toolsSection"></div>
         </div>
+
+        <button class="btn" id="restartBtn" style="width:100%; margin-top:32px; background:transparent; color:var(--muted); border:1px solid var(--line-strong); box-shadow:none;">返回首页重新测试</button>
       </div>
     </div>
   </div>
@@ -977,6 +979,13 @@ document.getElementById('startBtn').addEventListener('click', function() {
   viewingReturnedQuestion = false;
   scores = { deadline: 0, novelty: 0, witness: 0, chaos: 0, hyperfocus: 0, drift: 0 };
   showQuestion();
+});
+
+// 返回首页按钮
+document.getElementById('restartBtn').addEventListener('click', function() {
+  document.getElementById('resultPage').classList.add('hidden');
+  document.getElementById('homePage').classList.remove('hidden');
+  window.scrollTo(0, 0);
 });
 
 function updateProgress() {
