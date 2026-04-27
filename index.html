@@ -335,7 +335,23 @@
       <div class="card hero">
         <h1>你的 ADHD 脑<br>靠什么偷偷续命？</h1>
         <p>6 种续命方式，找到你的那一种</p>
-        <button class="btn" id="startBtn">开始测试</button>
+
+        <div style="max-width: 360px; margin: 24px auto 8px; text-align: left;">
+          <label style="display:block; font-size:14px; color:var(--muted); margin-bottom:8px; text-align:center;">想怎么称呼你？</label>
+          <input type="text" id="nicknameInput" maxlength="12" placeholder="昵称（可选）"
+            style="width:100%; padding:14px 20px; border-radius:999px; border:2px solid var(--line-strong); background:var(--card-strong); color:var(--text); font-size:15px; text-align:center; outline:none; margin-bottom:14px;" />
+
+          <label style="display:block; font-size:14px; color:var(--muted); margin-bottom:8px; text-align:center;">已购买请输入卡密 · 未购买可直接开始</label>
+          <input type="text" id="codeInput" placeholder="卡密（可选）"
+            style="width:100%; padding:14px 20px; border-radius:999px; border:2px solid var(--line-strong); background:var(--card-strong); color:var(--text); font-size:15px; text-align:center; outline:none; letter-spacing:2px; text-transform:uppercase;" />
+          <div id="codeError" style="color:#c46b6b; font-size:13px; margin-top:8px; min-height:18px; text-align:center;"></div>
+        </div>
+
+        <button class="btn" id="startBtn" style="margin-top: 4px;">开始测试</button>
+        <p style="font-size:13px; color:var(--muted); margin-top:18px; line-height:1.6;">
+          未购买仅可看免费版预览<br>
+          完整版请在小红书搜索 <b>「吱吱」</b> 店铺购买（0.99 元）
+        </p>
       </div>
     </div>
 
@@ -353,12 +369,22 @@
     <!-- 结果页 -->
     <div id="resultPage" class="hidden">
       <div class="card result-card">
+        <div id="resultGreeting" style="font-size:15px; color:var(--muted); margin-bottom:8px;"></div>
         <div class="result-type" id="resultType"></div>
         <div class="result-rarity" id="resultRarity"></div>
         <div class="result-hero"><img id="resultHeroImage" alt="结果插画" src=""></div>
         <div class="result-content" id="resultContent"></div>
 
-        <div class="paid-content" id="paidContent">
+        <div id="lockedHint" class="hidden" style="background:var(--card-strong); border:1px dashed var(--line-strong); padding:24px; border-radius:18px; text-align:center; margin-top:24px;">
+          <p style="margin:0 0 8px 0; font-weight:600;">🔒 完整报告未解锁</p>
+          <p style="margin:0; font-size:14px; color:var(--muted); line-height:1.7;">
+            完整版包括：完整人格深度文案 · 配套歌词解析 · CP/相克关系表 · 续命工具包<br><br>
+            在小红书搜索 <b>「吱吱」</b> 店铺购买（0.99 元）<br>
+            获得卡密后回到首页输入即可解锁
+          </p>
+        </div>
+
+        <div class="paid-content hidden" id="paidContent">
           <div class="song-quote" id="songQuote"></div>
           <div class="cp-section" id="cpSection"></div>
           <div class="tools-section" id="toolsSection"></div>
@@ -902,7 +928,48 @@ document.getElementById('themeBtn').addEventListener('click', function() {
   meta.content = document.body.classList.contains('dark') ? '#17131f' : '#efe5d6';
 });
 
+// 全局状态：是否已通过卡密解锁
+let isUnlocked = false;
+let userNickname = '';
+
+// 有效卡密列表
+const VALID_CODES = ["ZZ7K2M9","ZZ8N4P1","ZZ3Q6R5","ZZ9T1W8","ZZ2Y5U3","ZZ6I8O4","ZZ1A3S7","ZZ5D9F2","ZZ4G7H6","ZZ8J2K9","ZZ3L5Z1","ZZ7X4C8","ZZ9V2B6","ZZ1N5M3","ZZ6Q8W4","ZZ2E7R9","ZZ5T1Y8","ZZ3U6I2","ZZ8O9P5","ZZ4A2S7","ZZ7D3F1","ZZ9G6H4","ZZ2J8K5","ZZ5L1Z9","ZZ8X7C3","ZZ1V4B6","ZZ6N9M2","ZZ3Q5W8","ZZ7E2R4","ZZ4T8Y1","ZZ9U3I7","ZZ2O5P9","ZZ5A8S3","ZZ8D1F6","ZZ3G7H2","ZZ6J4K9","ZZ1L8Z5","ZZ9X2C7","ZZ4V6B3","ZZ7N1M8","ZZ2Q9W4","ZZ5E3R7","ZZ8T6Y2","ZZ3U7I5","ZZ6O2P9","ZZ9A4S1","ZZ1D8F5","ZZ4G2H7","ZZ7J9K3","ZZ2L6Z8"];
+
+// 启动前若本地已记录解锁，自动恢复
+if (localStorage.getItem('isUnlocked') === 'true') {
+  isUnlocked = true;
+}
+
 document.getElementById('startBtn').addEventListener('click', function() {
+  const codeInput = document.getElementById('codeInput');
+  const errorEl = document.getElementById('codeError');
+  const nicknameInput = document.getElementById('nicknameInput');
+
+  errorEl.textContent = '';
+  userNickname = nicknameInput.value.trim();
+
+  const code = codeInput.value.trim().toUpperCase();
+  if (code) {
+    // 用户填了卡密，验证一下
+    if (VALID_CODES.indexOf(code) === -1) {
+      errorEl.textContent = '卡密无效，请检查后重试（或留空直接体验免费版）';
+      return;
+    }
+    const usedCodes = JSON.parse(localStorage.getItem('usedCodes') || '[]');
+    const myCode = localStorage.getItem('myCode');
+    if (usedCodes.indexOf(code) !== -1 && myCode !== code) {
+      errorEl.textContent = '该卡密已被其他设备使用，如有疑问请私信客服';
+      return;
+    }
+    if (usedCodes.indexOf(code) === -1) {
+      usedCodes.push(code);
+      localStorage.setItem('usedCodes', JSON.stringify(usedCodes));
+    }
+    localStorage.setItem('myCode', code);
+    localStorage.setItem('isUnlocked', 'true');
+    isUnlocked = true;
+  }
+
   document.getElementById('homePage').classList.add('hidden');
   document.getElementById('testPage').classList.remove('hidden');
   currentQuestion = 0;
@@ -992,11 +1059,21 @@ function showResult() {
   document.getElementById('testPage').classList.add('hidden');
   document.getElementById('resultPage').classList.remove('hidden');
 
+  // 称呼
+  const greetEl = document.getElementById('resultGreeting');
+  if (userNickname) {
+    greetEl.textContent = '亲爱的 ' + userNickname + ' ——';
+  } else {
+    greetEl.textContent = '';
+  }
+
   document.getElementById('resultType').textContent = result.name;
   document.getElementById('resultRarity').textContent = '稀有度: ' + result.rarity + ' 的人和你一样';
   document.getElementById('resultHeroImage').src = RESULT_IMAGES[resultType];
 
-  const paragraphs = fullData.full.split('\n\n');
+  // 主文案：解锁就显示完整版，未解锁显示 preview
+  const textSource = isUnlocked ? fullData.full : result.preview;
+  const paragraphs = textSource.split('\n\n');
   let content = '';
   paragraphs.forEach(function(p) {
     content += '<p>' + p + '</p>';
@@ -1004,22 +1081,31 @@ function showResult() {
   content += '<p style="color: var(--accent); font-weight: 600; margin-top: 24px;">' + result.tip + '</p>';
   document.getElementById('resultContent').innerHTML = content;
 
-  let songHTML = '<div class="lyrics">"' + fullData.song + '"</div>';
-  songHTML += '<div class="artist">—— ' + fullData.songArtist + '</div>';
-  songHTML += '<div class="note">' + fullData.songNote + '</div>';
-  document.getElementById('songQuote').innerHTML = songHTML;
+  if (isUnlocked) {
+    // 显示付费内容
+    let songHTML = '<div class="lyrics">"' + fullData.song + '"</div>';
+    songHTML += '<div class="artist">—— ' + fullData.songArtist + '</div>';
+    songHTML += '<div class="note">' + fullData.songNote + '</div>';
+    document.getElementById('songQuote').innerHTML = songHTML;
 
-  let cpHTML = '<h4>谁最懂你 / 谁容易误解你</h4>';
-  cpHTML += '<div class="cp-item"><strong>最懂你的：</strong>' + fullData.bestMatch + '</div>';
-  cpHTML += '<div class="cp-item"><strong>容易误解你的：</strong>' + fullData.hardMatch + '</div>';
-  cpHTML += '<div class="cp-item" style="margin-top: 16px; font-style: italic;">' + fullData.cpNote + '</div>';
-  document.getElementById('cpSection').innerHTML = cpHTML;
+    let cpHTML = '<h4>谁最懂你 / 谁容易误解你</h4>';
+    cpHTML += '<div class="cp-item"><strong>最懂你的：</strong>' + fullData.bestMatch + '</div>';
+    cpHTML += '<div class="cp-item"><strong>容易误解你的：</strong>' + fullData.hardMatch + '</div>';
+    cpHTML += '<div class="cp-item" style="margin-top: 16px; font-style: italic;">' + fullData.cpNote + '</div>';
+    document.getElementById('cpSection').innerHTML = cpHTML;
 
-  let toolsHTML = '<h4>续命工具包</h4>';
-  fullData.tools.forEach(function(tool) {
-    toolsHTML += '<div class="tool-item">' + tool + '</div>';
-  });
-  document.getElementById('toolsSection').innerHTML = toolsHTML;
+    let toolsHTML = '<h4>续命工具包</h4>';
+    fullData.tools.forEach(function(tool) {
+      toolsHTML += '<div class="tool-item">' + tool + '</div>';
+    });
+    document.getElementById('toolsSection').innerHTML = toolsHTML;
+
+    document.getElementById('paidContent').classList.remove('hidden');
+    document.getElementById('lockedHint').classList.add('hidden');
+  } else {
+    document.getElementById('paidContent').classList.add('hidden');
+    document.getElementById('lockedHint').classList.remove('hidden');
+  }
 }
 
   </script>
